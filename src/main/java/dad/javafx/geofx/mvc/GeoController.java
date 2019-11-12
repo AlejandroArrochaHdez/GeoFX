@@ -152,8 +152,7 @@ public class GeoController implements Initializable {
 			model.setHost(raiz.getHostname());
 			//model.setProxy(raiz.getSecurity().getIsProxy());
 		} catch (IpApiServiceException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (NullPointerException e) {
 		}
 	}
 	
