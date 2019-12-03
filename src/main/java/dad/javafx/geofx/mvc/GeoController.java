@@ -7,10 +7,13 @@ import java.util.ResourceBundle;
 import dad.javafx.geofx.client.IpApiService;
 import dad.javafx.geofx.client.IpApiServiceException;
 import dad.javafx.geofx.cliente.json.Raiz;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -22,6 +25,10 @@ import javafx.scene.layout.BorderPane;
 public class GeoController implements Initializable {
 	
 	private GeoModel model = new GeoModel();
+	
+	private Task<Void> tarea;
+	private Raiz raiz = new Raiz();
+	IpApiService service = new IpApiService();
 	
     @FXML
     private BorderPane view;
@@ -123,37 +130,57 @@ public class GeoController implements Initializable {
 	}
 	
 	
-	public GeoController() throws IOException, IpApiServiceException {
+	public GeoController() throws IOException{
 		FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/GeoView.fxml"));
 		loader.setController(this);
 		loader.load();
 	}
 	
 	private void actualizar(String ip) {
-		IpApiService servicio = new IpApiService();
-		try {
-			Raiz raiz = servicio.listRaizIp(ip);
-			model.setIp(raiz.getIp());
-			model.setLongitud("" + raiz.getLongitude());
-			model.setLatitud("" + raiz.getLatitude());
-			model.setPais(raiz.getCountryName() + " (" + raiz.getCountryCode() + ")");
-			Image img = new Image("https://raw.githubusercontent.com/dam-dad/Flags/master/64/"+raiz.getCountryCode()+".png");
-			paisImg.setImage(img);
-			model.setCiudad(raiz.getCity()+ " (" +raiz.getRegionName()+ ")");
-			model.setZip(raiz.getZip());
-			model.setLenguaje("" + raiz.getLocation().getLanguages().get(0).getName());
-			model.setTimeZona("" + raiz.getTimeZone());
-			model.setCalling(raiz.getLocation().getCallingCode());
-			model.setCurrency("" + raiz.getCurrency());
-			model.setIpAdress(raiz.getIp());
-			//model.setIps(raiz.getConnection().getIsp());
-			model.setType(raiz.getType());
-			//model.setAsn("" + raiz.getConnection().getAsn());
-			model.setHost(raiz.getHostname());
-			//model.setProxy(raiz.getSecurity().getIsProxy());
-		} catch (IpApiServiceException e) {
-		} catch (NullPointerException e) {
-		}
+		
+		tarea = new Task<Void>() {
+			@Override
+			protected Void call() throws Exception {
+				raiz = service.listRaizIp(ip);
+				return null;
+			}
+		};
+		
+		tarea.setOnSucceeded(e -> {
+			try {
+				model.setIp(raiz.getIp());
+				model.setLongitud("" + raiz.getLongitude());
+				model.setLatitud("" + raiz.getLatitude());
+				model.setPais(raiz.getCountryName() + " (" + raiz.getCountryCode() + ")");
+				Image img = new Image("https://raw.githubusercontent.com/dam-dad/Flags/master/64/"+raiz.getCountryCode()+".png");
+				paisImg.setImage(img);
+				model.setCiudad(raiz.getCity()+ " (" +raiz.getRegionName()+ ")");
+				model.setZip(raiz.getZip());
+				model.setLenguaje("" + raiz.getLocation().getLanguages().get(0).getName());
+				model.setTimeZona("" + raiz.getTimeZone());
+				model.setCalling(raiz.getLocation().getCallingCode());
+				model.setCurrency("" + raiz.getCurrency());
+				model.setIpAdress(raiz.getIp());
+				//model.setIps(raiz.getConnection().getIsp());
+				model.setType(raiz.getType());
+				//model.setAsn("" + raiz.getConnection().getAsn());
+				model.setHost(raiz.getHostname());
+				//model.setProxy(raiz.getSecurity().getIsProxy());
+			} catch (NullPointerException e3) {
+			}
+		});
+		
+		tarea.setOnFailed(e -> {
+			Alert alert = new Alert(AlertType.ERROR);
+			alert.setTitle("Error");
+			alert.setHeaderText("Error al consultar la api");
+			alert.setContentText(e.getSource().getException().getMessage());
+			alert.showAndWait();
+		});
+		
+		new Thread(tarea).start();
+		
+		
 	}
 	
     @FXML
